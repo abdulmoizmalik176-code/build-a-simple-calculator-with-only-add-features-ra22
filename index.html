@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Truck Terrain</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --panel: #1e293b;
+    --panel-border: #334155;
+    --text: #f8fafc;
+    --muted: #94a3b8;
+    --accent: #3b82f6;
+    --accent-dark: #1d4ed8;
+    --ground: #475569;
+    --truck: #ef4444;
+    --gold: #eab308;
+    --btn-bg: #334155;
+    --btn-active: #475569;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+    overflow-x: hidden;
+  }
+
+  .game-wrapper {
+    width: 100%;
+    max-width: 500px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 14px;
+    padding: 10px 16px;
+  }
+
+  .title-group h1 {
+    font-size: 1.25rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--accent);
+  }
+
+  .scores {
+    display: flex;
+    gap: 14px;
+    text-align: right;
+  }
+
+  .score-box {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .score-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    font-weight: 600;
+  }
+
+  .score-val {
+    font-size: 1.2rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .board-container {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: #020617;
+    border: 2px solid var(--panel-border);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+  }
+
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  .overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(4px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 20px;
+    text-align: center;
+    transition: opacity 0.2s ease;
+  }
+
+  .overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 12px 28px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    min-height: 44px;
+    transition: transform 0.1s, background 0.15s;
+  }
+
+  .btn-primary:active {
+    transform: scale(0.96);
+  }
+
+  .dpad-container {
+    display: flex;
+    justify-content: center;
+    padding-top: 10px;
+  }
+
+  .dpad {
+    display: grid;
+    grid-template-columns: repeat(2, 100px);
+    gap: 20px;
+  }
+
+  .dpad-btn {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 16px;
+    color: var(--text);
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 0.9rem;
+    cursor: pointer;
+    box-shadow: 0 4px 0 #0f172a;
+    transition: transform 0.08s, background 0.08s;
+  }
+
+  .dpad-btn:active,
+  .dpad-btn.pressed {
+    background: var(--btn-active);
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 #0f172a;
+  }
+</style>
+</head>
+<body>
+
+<div class="game-wrapper">
+  <header>
+    <div class="title-group">
+      <h1>TRUCK TERRAIN</h1>
+    </div>
+    <div class="scores">
+      <div class="score-box">
+        <span class="score-label">Dist</span>
+        <span class="score-val" id="scoreVal">0m</span>
+      </div>
+      <div class="score-box">
+        <span class="score-label">Best</span>
+        <span class="score-val" id="highScoreVal" style="color: var(--gold);">0m</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="board-container">
+    <canvas id="gameCanvas" width="800" height="450"></canvas>
+    <div class="overlay" id="overlay">
+      <h2 id="overlayTitle">Ready?</h2>
+      <p id="overlayMsg">Balance the truck using Left/Right controls.</p>
+      <button class="btn-primary" id="startBtn">Start Engine</button>
+    </div>
+  </div>
+
+  <div class="dpad-container">
+    <div class="dpad">
+      <button class="dpad-btn" id="btnLeft">TILT LEFT</button>
+      <button class="dpad-btn" id="btnRight">TILT RIGHT</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+  const scoreEl = document.getElementById('scoreVal');
+  const highScoreEl = document.getElementById('highScoreVal');
+  const overlay = document.getElementById('overlay');
+  const overlayTitle = document.getElementById('overlayTitle');
+  const startBtn = document.getElementById('startBtn');
+  
+  // Game state
+  let animationId;
+  let running = false;
+  let distance = 0;
+  let bestDistance = 0;
+
+  // Persistence
+  try {
+    const saved = localStorage.getItem('truck_best');
+    if (saved) bestDistance = parseInt(saved, 10);
+    highScoreEl.textContent = bestDistance + 'm';
+  } catch(e) {}
+
+  // Truck State
+  const truck = {
+    x: 100, y: 0,
+    vx: 2, vy: 0,
+    angle: 0, angVel: 0,
+    width: 60, height: 30,
+    wheelRadius: 10,
+    isAlive: true
+  };
+
+  // Terrain Generation
+  let terrain = [];
+  function generateTerrain() {
+    terrain = [];
+    let x = 0;
+    let y = 300;
+    let slope = 0;
+    while(x < 5000) {
+      terrain.push({x, y});
+      slope += (Math.random() - 0.5) * 0.5;
+      slope = Math.max(-1, Math.min(1, slope));
+      y += slope * 20;
+      y = Math.max(100, Math.min(400, y));
+      x += 20;
+    }
+  }
+
+  function getTerrainHeight(x) {
+    // Find segments
+    for(let i = 0; i < terrain.length - 1; i++) {
+      if(x >= terrain[i].x && x <= terrain[i+1].x) {
+        const ratio = (x - terrain[i].x) / (terrain[i+1].x - terrain[i].x);
+        return terrain[i].y + (terrain[i+1].y - terrain[i].y) * ratio;
+      }
+    }
+    return 400;
+  }
+
+  // Inputs
+  const keys = { left: false, right: false };
+  
+  function update() {
+    if(!running) return;
+
+    // Physics
+    truck.x += truck.vx;
+    truck.angle += truck.angVel;
+    
+    // Controls: Tilt
+    if(keys.left) truck.angVel -= 0.02;
+    if(keys.right) truck.angVel += 0.02;
+    
+    // Stabilize
+    truck.angVel *= 0.98;
+    
+    // Gravity
+    truck.vy += 0.5;
+    truck.y += truck.vy;
+
+    // Collision
+    const floorY = getTerrainHeight(truck.x);
+    if(truck.y + 15 > floorY) {
+      truck.y = floorY - 15;
+      truck.vy = 0;
+      
+      // If angle is too extreme, crash
+      if(Math.abs(truck.angle) > 1.2) {
+        gameOver();
+      }
+    }
+
+    distance = Math.floor(truck.x / 10);
+    scoreEl.textContent = distance + 'm';
+
+    // Camera follow (shift terrain relative to truck)
+    // Actually, just drawing terrain relative to truck
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw Terrain
+    ctx.beginPath();
+    ctx.moveTo(0, canvas.height);
+    for(let p of terrain) {
+      ctx.lineTo(p.x - truck.x + 100, p.y);
+    }
+    ctx.lineTo(1000, canvas.height);
+    ctx.fillStyle = '#475569';
+    ctx.fill();
+
+    // Draw Truck
+    ctx.save();
+    ctx.translate(100, truck.y);
+    ctx.rotate(truck.angle);
+    ctx.fillStyle = '#ef4444';
+    ctx.fillRect(-30, -15, 60, 30); // Body
+    ctx.fillStyle = '#f8fafc';
+    ctx.fillRect(-10, -25, 20, 10); // Cab
+    ctx.restore();
+
+    if(running) animationId = requestAnimationFrame(() => {
+      update();
+      draw();
+    });
+  }
+
+  function gameOver() {
+    running = false;
+    cancelAnimationFrame(animationId);
+    if(distance > bestDistance) {
+      bestDistance = distance;
+      try { localStorage.setItem('truck_best', bestDistance); } catch(e) {}
+      highScoreEl.textContent = bestDistance + 'm';
+    }
+    overlayTitle.textContent = "Crashed!";
+    overlay.classList.remove('hidden');
+    startBtn.textContent = "Retry";
+  }
+
+  function resetGame() {
+    truck.x = 100;
+    truck.y = 200;
+    truck.vy = 0;
+    truck.angle = 0;
+    truck.angVel = 0;
+    distance = 0;
+    scoreEl.textContent = '0m';
+    generateTerrain();
+    running = true;
+    overlay.classList.add('hidden');
+    update();
+    draw();
+  }
+
+  // Events
+  startBtn.addEventListener('click', resetGame);
+  
+  const setupBtn = (id, key) => {
+    const el = document.getElementById(id);
+    el.addEventListener('touchstart', (e) => { e.preventDefault(); keys[key] = true; el.classList.add('pressed'); });
+    el.addEventListener('touchend', (e) => { e.preventDefault(); keys[key] = false; el.classList.remove('pressed'); });
+    el.addEventListener('mousedown', () => { keys[key] = true; el.classList.add('pressed'); });
+    el.addEventListener('mouseup', () => { keys[key] = false; el.classList.remove('pressed'); });
+    el.addEventListener('mouseleave', () => { keys[key] = false; el.classList.remove('pressed'); });
+  };
+  
+  setupBtn('btnLeft', 'left');
+  setupBtn('btnRight', 'right');
+
+  document.addEventListener('keydown', (e) => {
+    if(e.key === 'ArrowLeft') keys.left = true;
+    if(e.key === 'ArrowRight') keys.right = true;
+  });
+  document.addEventListener('keyup', (e) => {
+    if(e.key === 'ArrowLeft') keys.left = false;
+    if(e.key === 'ArrowRight') keys.right = false;
+  });
+
+  generateTerrain();
+  draw();
+})();
+</script>
+</body>
+</html>
